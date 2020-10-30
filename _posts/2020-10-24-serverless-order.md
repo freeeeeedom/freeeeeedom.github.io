@@ -28,7 +28,7 @@ description: Java是最好的语言。
 财力允许的话还可以购买数据库服务（因为年少轻狂打折时我购买了这俩很长很长时间)
 - mysql数据库
 - redis数据库
-
+![](http://freeeeeedom.github.io/img/img1.png)
 
 ## 部署方案
 
@@ -104,7 +104,8 @@ public class Scf {
     }
 }
 ```
-只需要打包好代码，然后将入口函数设置为Scf::pure就实现了接收数据，然后从数据库查询了第一个订单的id和创建时间并且返回的能力(代码写的烂别在意)。
+只需要打包好代码，然后将入口函数设置为scf.Scf::pure就实现了接收数据，然后从数据库查询了第一个订单的id和创建时间并且返回的能力(代码写的烂别在意)。
+![](http://freeeeeedom.github.io/img/scfrun.png)
 每一次通过API网关触发云函数都会触发pure这个方法(调用者>调用API网关>云函数-->pure)，但经测试发现static的数据源初始化并不会被重复加载，这也奠定了springboot可部署基础。
 其中通过log打印API网关带来的参数，直接将其复制为json，然后通过main函数模拟调用，这样就实现了本地模拟serverless部署后的调用。
 ```
@@ -117,6 +118,10 @@ log.info("param:{}", gson.toJson(insertParam);
 代码还没清理干净有空再补
 代码还没清理干净有空再补
 ```
+### Api网关配置
+不知道咋描述直接上图吧，这里的路径参数对应springboot里的mapping路径
+![](http://freeeeeedom.github.io/img/apiconfig.png)
+![](http://freeeeeedom.github.io/img/apiconfigdetail.png)
 
 ## 细节
 ### 本地调试
@@ -152,10 +157,12 @@ log.info("param:{}", gson.toJson(insertParam);
 
 其实只有123步骤是最有效的，后面的45678如果你想的话……
 更不用说API网关本身提供的鉴权功能了。
-
+![](http://freeeeeedom.github.io/img/apiconfigaccess.png)
 ### 性能
 内存的话对于订单系统来说单次请求加上JVM也才300mb，而云函数单个函数执行内存能拉到3GB，哪怕有点量的分布式计算应该问题也不大。
+![](http://freeeeeedom.github.io/img/3gb.png)
 并发的话云函数上的预置并发上限200个，订单系统嘛，QPS1000?10000?100000? ezpz了，再怎么也比自家机柜服务器强几百几千个量级了。
+![](http://freeeeeedom.github.io/img/predeploy.png)
 内存算力不够服务器扩容？不存在的。
 
 ### 页面
