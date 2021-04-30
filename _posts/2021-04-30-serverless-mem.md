@@ -36,7 +36,7 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
 
 ## 代码审查
 首先排除了参数没配置的情况，那么只能是池用的有毛病，那么先看看池怎么创建的。
-```
+```java
     public static final int MAX_ACTIVE_SIZE = 10;
     public static DruidDataSource dataSourcePool = new DruidDataSource();
     private static void initialDruidDataSource(String url, String user, String pwd) {
@@ -70,7 +70,7 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
     }
 ```
 除了参数多了点，似乎没啥不对劲，继续往下看。
-```
+```java
     public static SqlSessionFactory factory;
     public static SqlSession session;
 	private static void initialMybatisPlus() {
@@ -103,7 +103,7 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
 发现问题后，那就好修改了，只有一个session那就改成每次创建新的session，而且不确定云函数情况下的托管好不好使，直接自己写个list对session进行管控。
 
 修改后如下：
-```
+```java
     public static final int MAX_ACTIVE_SIZE = 10;
     public static DruidDataSource dataSourcePool = new DruidDataSource();
     public static SqlSessionFactory factory;
