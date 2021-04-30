@@ -22,6 +22,7 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
 db_url=jdbc:mysql://ip:port/vwork?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
 ```
 顺便把连接改为了环境变量配置，然后进行了部署，一切行云流水，没有丝毫停顿。
+
 自信如我部署后直接都没看就去干别的了，三四个小时侯回来再看日志时候，发现了意思不对劲。
 
 ## 错误依旧
@@ -30,6 +31,7 @@ db_url=jdbc:mysql://ip:port/vwork?autoReconnect=true&autoReconnectForPools=true&
 Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet successfully received from the server was 36,630,008 milliseconds ago. The last packet sent successfully to the server was 29,245,233 milliseconds ago. is longer than the server configured value of 'wait_timeout'. You should consider either expiring and/or testing connection validity before use in your application, increasing the server configured values for client timeouts, or using the Connector/J connection property 'autoReconnect=true' to avoid this problem.
 ```
 除了时间数字不一样，其他都是一毛一样。没道理啊，上面说这么改也没问题啊，后续我加上了日志，再次确认函数中的数据库连接已经是读取的环境变量并且也加上了参数，此时的我感觉到了丝丝寒意。
+
 此时只能开始google了起来，看看其他人是怎么碰上这问题的，一查发现原因五花八门，不过大都是因为参数没配，或者说druid的池管理用的不太对劲，于是我也只能从这方面下手。
 
 ## 代码审查
@@ -92,11 +94,14 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
     }
 ```
 此时就发现不对劲了， 这个SqlSession看起来，似乎，有些，少？(只有一个session)
+
 并且session似乎没有close?
+
 这么算起来一个session一直跑一直跑，估计支持那么久也该超时了，而且那些druid的调优参数都没啥用了。
 
 ## 改错
 发现问题后，那就好修改了，只有一个session那就改成每次创建新的session，而且不确定云函数情况下的托管好不好使，直接自己写个list对session进行管控。
+
 修改后如下：
 ```
     public static final int MAX_ACTIVE_SIZE = 10;
@@ -153,13 +158,19 @@ Caused by: com.mysql.cj.exceptions.CJCommunicationsException: The last packet su
 这样一来，每一次service要执行sql都会调用getSession()获取一个新的session，并且每次函数执行完后还会调用releaseSession()进行session统一释放，虽然session的复用几乎没有，但是这样一来不用再担心那个超时报错了。
 
 ## 第二次尝试
-再次打包部署，行云流水，一气呵成。</br>
-打开监控，等待，</br>
-十分钟，刷新，</br>
-二十分钟，刷新，</br>
-三十分钟，刷新，</br>
-……</br>
-等待一小时后，再也没有出现过这个错，纠错成功！</br>
+再次打包部署，行云流水，一气呵成。
+
+打开监控，等待，
+
+十分钟，刷新，
+
+二十分钟，刷新，
+
+三十分钟，刷新，
+
+……
+
+等待一小时后，再也没有出现过这个错，纠错成功！
 
 ## 总结
 此次问题，主要是因为开发者对mybatis和sqlsession不够了解导致，所有数据库请求都用了同一个session，然后就超时了，并且也巧妙的避过了druid的调优。
