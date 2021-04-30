@@ -1,6 +1,6 @@
 ---
 layout: post
-title: [Serverless]mybatisPlus使用问题定位
+title: mybatisPlus使用问题定位
 date: 2021-04-30
 categories: blog
 tags: []
